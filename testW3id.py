@@ -4,10 +4,10 @@ import requests
 from sys import argv
 from sys import exit
 from glob import glob
-from enum import Enum
+from enum import IntEnum
 
 
-class status(Enum):
+class status(IntEnum):
     OK = 0
     WARN = 1
     ERROR = 2
@@ -22,6 +22,14 @@ class Results():
         self.status = status.OK
         self.matches = {}
         self.mismatches = {}
+
+    def setWarn(self):
+        if self.status < status.WARN:
+            self.status = status.WARN
+
+    def setError(self):
+        if self.status < status.ERROR:
+            self.status = status.ERROR
 
 
 Diff = namedtuple('Diff', 'expected received')
@@ -48,7 +56,7 @@ def processTestcase(testcase):
     if testcase["response_statuscode"]:
 
         if str(resp.status_code) != testcase["response_statuscode"]:
-            results.status = status.ERROR
+            results.setError()
             results.mismatches["statuscode"] = Diff(
                 testcase["response_statuscode"], resp.status_code)
         else:
@@ -58,7 +66,11 @@ def processTestcase(testcase):
     response_headers["Location"] = testcase["response_url"]
     for key, value in response_headers.items():
         if value:
-            if not resp.headers[key] or value not in resp.headers[key]:
+            if not resp.headers[key] or value != resp.headers[key]:
+                if value in response_headers[key]:
+                    results.setWarn()
+                else:
+                    results.setError()
                 results.mismatches[key] = Diff(value, resp.headers[key])
             else:
                 results.matches[key] = Diff(value, resp.headers[key])
@@ -84,20 +96,18 @@ with open(tests_csv, newline='') as csvfile:
         if testcase['request_url'].startswith('#'):
             continue
 
-        output = "Testing: %d %s__[%s] --[%s]-> %s__[%s]" \
+        simple_output = "Testing: %d %s__[%s] --[%s]-> %s__[%s]" \
             % (testCaseId,
                testcase["request_url"],
                testcase["request_header_accept"],
                testcase["response_statuscode"],
                testcase["response_url"],
                testcase["response_header_content-type"])
-        # print(output)
+
+        res = processTestcase(testcase)
 
         # Column Size for output
-        res = processTestcase(testcase)
-        cs1 = 20
-        cs2 = 20
-        cs3 = 20
+        cs1 = cs2 = cs3 = 20
 
         for item in [res.matches, res.mismatches]:
             cs1 = max(max([len(str(key))
@@ -106,24 +116,19 @@ with open(tests_csv, newline='') as csvfile:
                       for value in item.values()], default=0), cs2 + 2)
             cs3 = max(max([len(str(value.received))
                       for value in item.values()], default=0), cs3 + 2)
-        # print([[[len(key), len(str(value.expected)), len(str(value.received))] for key, value in item.items()] for item in [res.matches, res.mismatches]])
 
         if res.status != status.OK:
             print(
                 f"Testcase {testCaseId} Get {testcase['request_url']} failed")
             print(f"Details: showing mismatches")
-            # print(f"{'':{cs1}}{'expected':^{cs2}}{'received':^{cs3}}")
             for item in [res.matches, res.mismatches][1:]:
                 for key, value in item.items():
-                    print(f"{key:^{cs1}}")
+                    print(f"\t{key:^{cs1}}")
                     print(
-                        f"{'expected':^{10}}{value.expected}")
+                        f"\t{'expected':^{10}}{value.expected}")
                     print(
-                        f"{'received':^{10}}{value.received}")
+                        f"\t{'received':^{10}}{value.received}")
                     print()
-                    # print(
-                    #     f"{key:^{cs1}}{value.expected:^{cs2}}{value.received:^{cs3}}")
-            print()
         else:
             print(f"Testcase {testCaseId} Get {testcase['request_url']} ok")
 
