@@ -66,14 +66,14 @@ def processTestcase(testcase):
     response_headers["Location"] = testcase["response_url"]
     for key, value in response_headers.items():
         if value:
-            if not resp.headers[key] or value != resp.headers[key]:
+            if not resp.headers.get(key) or value != resp.headers.get(key):
                 if value in response_headers[key]:
                     results.setWarn()
                 else:
                     results.setError()
-                results.mismatches[key] = Diff(value, resp.headers[key])
+                results.mismatches[key] = Diff(value, resp.headers.get(key))
             else:
-                results.matches[key] = Diff(value, resp.headers[key])
+                results.matches[key] = Diff(value, resp.headers.get(key))
 
     return results
 
