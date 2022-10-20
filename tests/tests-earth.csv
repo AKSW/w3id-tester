@@ -1,0 +1,36 @@
+"request_url", "request_header_accept", "request_header_user-agent", "response_url", "response_header_content-type", "response_statuscode"
+# This script is not intended to process redirect chains if you wan't to test a chain you should specify each link
+# Test for slash handling
+"https://w3id.org/steel", "text/html", "", "https://w3id.org/steel/", "text/html; charset=iso-8859-1", "301"
+"https://w3id.org/steel/", "text/html", "", "https://materialdigital.github.io/stahldigital-ontology-public/", "text/html; charset=iso-8859-1", "303"
+
+# Test for known folders
+"https://w3id.org/steel/ProcessOntology", "text/html", "","https://w3id.org/steel/ProcessOntology/", "text/html; charset=iso-8859-1", "301"
+"https://w3id.org/steel/ProcessOntology/", "text/html", "","https://materialdigital.github.io/stahldigital-ontology-public/ProcessOntology/", "text/html; charset=iso-8859-1", "303"
+
+# Test for paths to files
+# "https://w3id.org/steel/Abaqus", "text/html", "", "https://materialdigital.github.io/stahldigital-ontology-public/Abaqus.html", "text/html; charset=iso-8859-1"
+# "https://w3id.org/steel/Class", "text/turtle", "", "https://materialdigital.github.io/stahldigital-ontology-public/Abaqus.ttl", "text/turtle; charset=iso-8859-1"
+# "https://w3id.org/steel/Class", "text/n3", "", "https://materialdigital.github.io/stahldigital-ontology-public/Abaqus.nt", "text/n3; charset=iso-8859-1", "303"
+"https://w3id.org/steel/ProcessOntology/Abaqus", "text/html", "", "https://materialdigital.github.io/stahldigital-ontology-public/ProcessOntology/Abaqus.html", "text/html; charset=iso-8859-1", "303"
+"https://w3id.org/steel/ProcessOntology/Abaqus", "text/turtle", "", "https://materialdigital.github.io/stahldigital-ontology-public/ProcessOntology/Abaqus.ttl", "text/turtle; charset=iso-8859-1", "303"
+"https://w3id.org/steel/ProcessOntology/Abaqus", "text/n-triples", "", "https://materialdigital.github.io/stahldigital-ontology-public/ProcessOntology/Abaqus.nt", "text/n-triple; charset=iso-8859-1", "303"
+# "https://w3id.org/steel/Class", "text/provenance-notation", "", ""
+# "https://w3id.org/steel/Class", "text/shaclc", "", ""
+# "https://w3id.org/steel/Class", "text/shex", "", ""
+"https://w3id.org/steel/Class", "application/ld\+json", "", ""
+"https://w3id.org/steel/Class", "application/rdf\+xml", "", ""
+"https://w3id.org/steel/Class", "application/n-triples", "", ""
+# "https://w3id.org/steel/Class", "application/n-quads", "", ""
+# "https://w3id.org/steel/Class", "application/provenance+xml", "", ""
+# "https://w3id.org/steel/Class", "application/sparql-query", "", ""
+# "https://w3id.org/steel/Class", "application/sparql-results+xml", "", ""
+# "https://w3id.org/steel/Class", "application/td+json", "", ""
+# "https://w3id.org/steel/Class", "application/trig", "", ""
+# "https://w3id.org/steel/Class", "application/xhtml+xml", "", ""
+
+# Redirect to correct mimetype
+"https://w3id.org/steel/Class.html", ""
+"https://w3id.org/steel/Class.xhtml", ""
+
+# Mimetypes list https://www.iana.org/assignments/media-types/media-types.xhtml
