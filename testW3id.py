@@ -161,14 +161,26 @@ def replaceLocalhostWithW3id(url):
 
 def processTestcase(testcase):
     request_headers, response_headers = extractRequestAndRespnseHeaders(testcase)
-    resp = requests.get(
+    responses = requests.get(
         replaceW3idWithLocalhost(testcase["request_url"]),
         headers=request_headers,
-        allow_redirects=False,
+        allow_redirects=True,
     )
+    responseList = responses.history + [responses]
+    redirectIndex = int(testcase["redirection_test_index"]) if testcase["redirection_test_index"] else 0
+    resp = responseList[redirectIndex]
 
     results = Results()
-    resp.headers["location"] = replaceLocalhostWithW3id(resp.headers.get("location"))
+    # as only redirects (code 3xx) send back a location header, use the location from the last redirect
+    # or the request location if no redirect was given
+    responseLocation = resp.headers.get("location") \
+            if str(resp.status_code).startswith("3") \
+            else \
+                ( responseList[redirectIndex-1].headers.get("location") \
+                    if redirectIndex>0 and redirectIndex-1 >= -len(responseList) \
+                    else testcase["response_url"] \
+                )
+    resp.headers["location"] = replaceLocalhostWithW3id(responseLocation)
     if testcase["response_statuscode"]:
 
         if str(resp.status_code) != testcase["response_statuscode"]:
