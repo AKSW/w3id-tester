@@ -107,11 +107,13 @@ class Results:
     status = status.OK
     matches = {}
     mismatches = {}
+    responseList = []
 
     def __init__(self):
         self.status = status.OK
         self.matches = {}
         self.mismatches = {}
+        self.responseList = []
 
     def setWarn(self):
         if self.status < status.WARN:
@@ -171,6 +173,7 @@ def processTestcase(testcase):
     resp = responseList[redirectIndex]
 
     results = Results()
+    results.responseList = [ (response.status_code, response.headers.get("location")) for response in responseList ]
     # as only redirects (code 3xx) send back a location header, use the location from the last redirect
     # or the request location if no redirect was given
     responseLocation = resp.headers.get("location") \
@@ -253,6 +256,7 @@ with open(tests_csv, newline="") as csvfile:
                     print(f"\t{'expected':^{10}}{value.expected}")
                     print(f"\t{'received':^{10}}{value.received}")
                     print()
+            print(res.responseList)
         else:
             print(f"Testcase {testCaseId} Get {testcase['request_url']} ok")
 
