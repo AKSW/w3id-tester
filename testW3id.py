@@ -29,7 +29,14 @@ def buildMenu():
 
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument(
+    groupW3idRepo = parser.add_mutually_exclusive_group()
+    groupW3idRepo.add_argument(
+        "-s",
+        "--skipW3idUpdate",
+        action="store_true",
+        help="skip updating the w3id directory from the git repository"
+    )
+    groupW3idRepo.add_argument(
         "repository",
         help="url or path to a git repository containing the w3id rules, can be either the official w3id.org repository or a fork",
         default=W3ID_REPOSITORY,
@@ -82,16 +89,26 @@ def getCurrentRepositoryUrl():
     return currentRepositoryUrl
 
 
-if getCurrentRepositoryUrl() != args.repository:
-    rmtree(W3ID_DIR, ignore_errors=True)
-    run(f"git clone -q --depth 1 {args.repository} {W3ID_DIR}".split())
+if not args.skipW3idUpdate:
+    if getCurrentRepositoryUrl() != args.repository:
+        rmtree(W3ID_DIR, ignore_errors=True)
+        if args.verbosity:
+            print(f"retrieving current w3id configuration from git repository url '{args.repository}'")
+        run(f"git clone -q --depth 1 {args.repository} {W3ID_DIR}".split())
+    else:
+        if args.update:
+            os.chdir(W3ID_DIR)
+            if args.verbosity:
+                print(f"updating w3id configuration from git")
+            run("git pull".split())
+            os.chdir(WORKDIR)
 else:
-    if args.update:
-        os.chdir(W3ID_DIR)
-        run("git pull".split())
-        os.chdir(WORKDIR)
+    if args.verbosity:
+        print(f"skipped update of w3id configuration from git repository")
 
 if os.environ.get("DOCKER"):
+    if args.verbosity:
+        print("starting httpd")
     run(["httpd", "-k", "start"])
 
 tests_csv = glob(os.path.join(TESTS_DIR, "*.csv"))[0]
@@ -151,8 +168,10 @@ def extractRequestAndRespnseHeaders(testcase):
 
 def replaceW3idWithLocalhost(url):
     if url and not args.online:
-        url = url.replace("https://w3id.org/", TMP_DOMAIN)
-    return url
+        url2 = url.replace("https://w3id.org/", TMP_DOMAIN)
+        if args.verbosity:
+            print(f"using '{url2}' instead of '{url}'")
+    return url2
 
 
 def replaceLocalhostWithW3id(url):
