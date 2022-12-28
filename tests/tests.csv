@@ -1,5 +1,6 @@
-"request_url", "request_header_accept", "request_header_user-agent", "response_url", "response_header_content-type", "response_statuscode"
-# This script is not intended to process redirect chains if you wan't to test a chain you should specify each link
+"request_url", "request_header_accept", "request_header_user-agent", "response_url", "response_header_content-type", "response_statuscode", "redirection_test_index"
+# "url to request", "accept header for request", "user agent for request", "expected url in response", "expected content type in response", "expected statuscode", "index in redirection list (0=first, -1=last)"
+
 # Test for slash handling
 "https://w3id.org/steel", "text/html", "", "https://w3id.org/steel/", "text/html; charset=iso-8859-1", "301"
 "https://w3id.org/steel/", "text/html", "", "https://materialdigital.github.io/stahldigital-ontology-public/", "text/html; charset=iso-8859-1", "303"
@@ -31,3 +32,7 @@
 "https://w3id.org/steel/Class.xhtml", ""
 
 # Mimetypes list https://www.iana.org/assignments/media-types/media-types.xhtml
+
+# test final redirect destination
+"https://w3id.org/steel/", "text/html", "", "https://materialdigital.github.io/stahldigital-ontology-public/", "text/html; charset=utf-8", "200", "-1"
+"https://w3id.org/steel/", "text/turtle", "", "https://materialdigital.github.io/stahldigital-ontology-public/", "text/turtle; charset=utf-8", "200", "-1"

@@ -29,7 +29,14 @@ def buildMenu():
 
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument(
+    groupW3idRepo = parser.add_mutually_exclusive_group()
+    groupW3idRepo.add_argument(
+        "-s",
+        "--skipW3idUpdate",
+        action="store_true",
+        help="skip updating the w3id directory from the git repository"
+    )
+    groupW3idRepo.add_argument(
         "repository",
         help="url or path to a git repository containing the w3id rules, can be either the official w3id.org repository or a fork",
         default=W3ID_REPOSITORY,
@@ -82,16 +89,26 @@ def getCurrentRepositoryUrl():
     return currentRepositoryUrl
 
 
-if getCurrentRepositoryUrl() != args.repository:
-    rmtree(W3ID_DIR, ignore_errors=True)
-    run(f"git clone -q --depth 1 {args.repository} {W3ID_DIR}".split())
+if not args.skipW3idUpdate:
+    if getCurrentRepositoryUrl() != args.repository:
+        rmtree(W3ID_DIR, ignore_errors=True)
+        if args.verbosity:
+            print(f"retrieving current w3id configuration from git repository url '{args.repository}'")
+        run(f"git clone -q --depth 1 {args.repository} {W3ID_DIR}".split())
+    else:
+        if args.update:
+            os.chdir(W3ID_DIR)
+            if args.verbosity:
+                print(f"updating w3id configuration from git")
+            run("git pull".split())
+            os.chdir(WORKDIR)
 else:
-    if args.update:
-        os.chdir(W3ID_DIR)
-        run("git pull".split())
-        os.chdir(WORKDIR)
+    if args.verbosity:
+        print(f"skipped update of w3id configuration from git repository")
 
 if os.environ.get("DOCKER"):
+    if args.verbosity:
+        print("starting httpd")
     run(["httpd", "-k", "start"])
 
 tests_csv = glob(os.path.join(TESTS_DIR, "*.csv"))[0]
@@ -107,11 +124,13 @@ class Results:
     status = status.OK
     matches = {}
     mismatches = {}
+    responseList = []
 
     def __init__(self):
         self.status = status.OK
         self.matches = {}
         self.mismatches = {}
+        self.responseList = []
 
     def setWarn(self):
         if self.status < status.WARN:
@@ -149,8 +168,10 @@ def extractRequestAndRespnseHeaders(testcase):
 
 def replaceW3idWithLocalhost(url):
     if url and not args.online:
-        url = url.replace("https://w3id.org/", TMP_DOMAIN)
-    return url
+        url2 = url.replace("https://w3id.org/", TMP_DOMAIN)
+        if args.verbosity:
+            print(f"using '{url2}' instead of '{url}'")
+    return url2
 
 
 def replaceLocalhostWithW3id(url):
@@ -161,14 +182,27 @@ def replaceLocalhostWithW3id(url):
 
 def processTestcase(testcase):
     request_headers, response_headers = extractRequestAndRespnseHeaders(testcase)
-    resp = requests.get(
+    responses = requests.get(
         replaceW3idWithLocalhost(testcase["request_url"]),
         headers=request_headers,
-        allow_redirects=False,
+        allow_redirects=True,
     )
+    responseList = responses.history + [responses]
+    redirectIndex = int(testcase["redirection_test_index"]) if testcase["redirection_test_index"] else 0
+    resp = responseList[redirectIndex]
 
     results = Results()
-    resp.headers["location"] = replaceLocalhostWithW3id(resp.headers.get("location"))
+    results.responseList = [ (response.status_code, response.headers.get("location")) for response in responseList ]
+    # as only redirects (code 3xx) send back a location header, use the location from the last redirect
+    # or the request location if no redirect was given
+    responseLocation = resp.headers.get("location") \
+            if str(resp.status_code).startswith("3") \
+            else \
+                ( responseList[redirectIndex-1].headers.get("location") \
+                    if redirectIndex>0 and redirectIndex-1 >= -len(responseList) \
+                    else testcase["response_url"] \
+                )
+    resp.headers["location"] = replaceLocalhostWithW3id(responseLocation)
     if testcase["response_statuscode"]:
 
         if str(resp.status_code) != testcase["response_statuscode"]:
@@ -241,6 +275,7 @@ with open(tests_csv, newline="") as csvfile:
                     print(f"\t{'expected':^{10}}{value.expected}")
                     print(f"\t{'received':^{10}}{value.received}")
                     print()
+            print(res.responseList)
         else:
             print(f"Testcase {testCaseId} Get {testcase['request_url']} ok")
 
